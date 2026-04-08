@@ -28,6 +28,10 @@ export default function Camera({ onCapture }) {
   const [currentShot, setCurrentShot] = useState(0); 
   const [burstPhotos, setBurstPhotos] = useState([]);
 
+  // Sticker Editor state
+  const [isEditingStickers, setIsEditingStickers] = useState(false);
+  const [draftCanvasData, setDraftCanvasData] = useState(null);
+
   // Interactive Stickers state
   const [placedStickers, setPlacedStickers] = useState([]);
   const [activeStickerId, setActiveStickerId] = useState(null);
