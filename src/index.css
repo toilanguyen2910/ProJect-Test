@@ -1,0 +1,320 @@
+:root {
+  /* Vintage Color Palette */
+  --bg-color: #1a1412;
+  --bg-warm: #231d19;
+  --bg-glass: rgba(42, 32, 25, 0.85);
+  --text-primary: #f5e6d3;
+  --text-secondary: #c4a882;
+  --text-muted: #8b7355;
+  --accent: #c8956c;
+  --accent-hover: #d4a574;
+  --accent-glow: rgba(200, 149, 108, 0.35);
+  --danger: #c75b4a;
+  --danger-hover: #b54a3a;
+  --gold: #d4a855;
+  --cream: #f5e6d3;
+  --sepia-light: #e8d5b7;
+  --film-border: #2a2018;
+
+  /* Layout */
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Playfair Display', 'Georgia', serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  /* Warm vintage gradient with vignette feel */
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(100, 60, 30, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(80, 50, 25, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at center, var(--bg-warm) 0%, var(--bg-color) 70%);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Custom vintage star cursor */
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%23c8956c' d='M11 2L8.5 8.5L2 11L8.5 13.5L11 20L13.5 13.5L20 11L13.5 8.5L11 2Z'/></svg>") 12 12, auto;
+}
+
+/* Film grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Subtle ornamental line across the page */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--gold) 20%, var(--accent) 50%, var(--gold) 80%, transparent 100%);
+  opacity: 0.6;
+  z-index: 100;
+}
+
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  position: relative;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 1rem;
+  padding: 1.5rem 0;
+  position: relative;
+}
+
+/* Decorative top ornament */
+.app-header::before {
+  content: '— ✦ —';
+  display: block;
+  color: var(--gold);
+  font-size: 1.2rem;
+  letter-spacing: 0.5em;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+/* Decorative bottom ornament */
+.app-header::after {
+  content: '';
+  display: block;
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 1rem auto 0;
+  opacity: 0.5;
+}
+
+.app-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 3.2rem;
+  font-weight: 900;
+  font-style: italic;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--cream) 40%, var(--accent) 70%, var(--gold) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  animation: shimmer 8s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.app-subtitle {
+  font-family: 'Special Elite', cursive;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+}
+
+.app-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .app-content {
+    grid-template-columns: 1fr;
+  }
+  .app-header h1 {
+    font-size: 2.2rem;
+  }
+}
+
+/* Glassmorphism panel with vintage twist — warm glass */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 149, 108, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(245, 230, 211, 0.05);
+  position: relative;
+}
+
+/* Inner film-strip decorative corners */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  border: 1px solid rgba(200, 149, 108, 0.08);
+  border-radius: calc(var(--radius-lg) - 4px);
+  pointer-events: none;
+}
+
+/* Base Buttons — vintage style */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-family: 'Special Elite', cursive;
+  font-weight: 400;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+  outline: none;
+  position: relative;
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--gold));
+  color: var(--bg-color);
+  box-shadow:
+    0 4px 14px 0 var(--accent-glow),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-hover), #dab35e);
+  box-shadow:
+    0 6px 24px var(--accent-glow),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: rgba(200, 149, 108, 0.15);
+  color: var(--text-primary);
+  border: 1px solid rgba(200, 149, 108, 0.3);
+}
+
+.btn-secondary:hover {
+  background: rgba(200, 149, 108, 0.25);
+  border-color: rgba(200, 149, 108, 0.5);
+}
+
+.btn-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.author-signature {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  font-family: 'Special Elite', cursive;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 100;
+  letter-spacing: 0.1em;
+}
+
+/* Custom scrollbar for entire app */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(200, 149, 108, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 149, 108, 0.5);
+}
+
+/* Selection color */
+::selection {
+  background: rgba(200, 149, 108, 0.3);
+  color: var(--cream);
+}
+
+/* Custom interactive element cursor */
+button, a, select, input, .btn {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%23d4a855' d='M11 2L8.5 8.5L2 11L8.5 13.5L11 20L13.5 13.5L20 11L13.5 8.5L11 2Z'/></svg>") 12 12, pointer !important;
+}
+
+/* Global Click Sparkle Effect */
+.click-sparkle {
+  position: fixed;
+  pointer-events: none;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, var(--gold) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 1;
+  animation: click-ripple 0.8s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+  z-index: 99999;
+}
+
+.click-sparkle::before, .click-sparkle::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 100%; height: 2px;
+  background: var(--gold);
+  transform: translate(-50%, -50%);
+  border-radius: 2px;
+}
+
+.click-sparkle::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+@keyframes click-ripple {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.5) rotate(45deg); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(2.5) rotate(90deg); opacity: 0; }
+}

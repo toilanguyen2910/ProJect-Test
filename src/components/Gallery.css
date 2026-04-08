@@ -1,0 +1,254 @@
+.gallery-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.gallery-container.empty-state {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+
+.empty-state h3 {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+}
+
+.empty-state p {
+  font-family: 'Special Elite', cursive;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.gallery-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--cream);
+}
+
+.photo-count {
+  font-family: 'Special Elite', cursive;
+  background: rgba(200, 149, 108, 0.12);
+  border: 1px solid rgba(200, 149, 108, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  /* Customize scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 149, 108, 0.2) transparent;
+}
+
+.gallery-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gallery-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gallery-grid::-webkit-scrollbar-thumb {
+  background-color: rgba(200, 149, 108, 0.25);
+  border-radius: 20px;
+}
+
+/* Photo cards — vintage polaroid feel */
+.photo-card {
+  position: relative;
+  aspect-ratio: 1 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(200, 149, 108, 0.1);
+  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-origin: center;
+  background-color: var(--film-border);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.photo-card:hover {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(200, 149, 108, 0.25);
+  transform: translateY(-3px);
+}
+
+.photo-card::after {
+  content: '👁️ XEM';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(26, 20, 18, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Special Elite', cursive;
+  font-weight: 400;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  color: var(--cream);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.photo-card:hover::after {
+  opacity: 1;
+}
+
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.8) rotate(-2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.photo-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.photo-card:hover img {
+  transform: scale(1.05);
+}
+
+/* ========== Lightbox / Modal — vintage frame ========== */
+.lightbox-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10, 8, 6, 0.92);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+
+.lightbox-content {
+  position: relative;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 90vw;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.btn-close {
+  position: absolute;
+  top: -20px;
+  right: -40px;
+  background: transparent;
+  border: none;
+  color: var(--cream);
+  font-size: 2rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+@media (max-width: 768px) {
+  .btn-close {
+    right: 0px;
+    top: -50px;
+  }
+}
+
+.btn-close:hover {
+  opacity: 1;
+  transform: scale(1.1) rotate(90deg);
+  color: var(--gold);
+}
+
+/* Image container — vintage frame with warm border */
+.lightbox-image-container {
+  max-height: 70vh;
+  border-radius: var(--radius-sm);
+  border: 8px solid var(--cream);
+  box-shadow:
+    0 15px 50px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(200, 149, 108, 0.3),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.lightbox-image-container img {
+  height: 70vh;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.lightbox-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.lightbox-actions .btn {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), #a33);
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(199, 91, 74, 0.3);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, var(--danger-hover), #922);
+  box-shadow: 0 6px 20px rgba(199, 91, 74, 0.4);
+  transform: translateY(-2px);
+}
