@@ -66,7 +66,9 @@ export default function Camera({ onCapture }) {
       const newPhotos = [...burstPhotos, snap];
       setBurstPhotos(newPhotos);
       
-      if (newPhotos.length === 4) {
+      const targetCount = layout === 'grid-6' ? 6 : 4;
+
+      if (newPhotos.length === targetCount) {
         setIsShooting(false);
         setBurstCountdown(null);
         setCurrentShot(0);
@@ -130,7 +132,7 @@ export default function Camera({ onCapture }) {
   };
 
   const createLayoutCanvas = (photos) => {
-    if (photos.length !== 4) return;
+    if (photos.length === 0) return;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -147,34 +149,78 @@ export default function Camera({ onCapture }) {
         const margin = 20;
         const bottomSpace = 140;
         
-        if (layout === 'strip') {
-           canvas.width = imgW + (padding * 2);
+        if (layout === 'strip' || layout === 'strip-double') {
+           const stripsCount = layout === 'strip-double' ? 2 : 1;
+           canvas.width = (imgW + padding * 2) * stripsCount + (stripsCount - 1) * margin;
            canvas.height = (imgH * 4) + (margin * 3) + padding + bottomSpace;
-        } else {
+        } else if (layout === 'grid' || layout === 'heart-4') {
            canvas.width = (imgW * 2) + margin + (padding * 2);
            canvas.height = (imgH * 2) + margin + padding + bottomSpace;
+        } else if (layout === 'grid-6') {
+           canvas.width = (imgW * 2) + margin + (padding * 2);
+           canvas.height = (imgH * 3) + margin * 2 + padding + bottomSpace;
         }
         
         ctx.fillStyle = theme;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        loadedImgs.forEach((img, idx) => {
-            let x, y;
-            if (layout === 'strip') {
-                x = padding;
-                y = padding + (idx * (imgH + margin));
-            } else {
-                x = padding + ((idx % 2) * (imgW + margin));
-                y = padding + (Math.floor(idx / 2) * (imgH + margin));
-            }
-            ctx.drawImage(img, x, y, imgW, imgH);
-        });
+        const drawHeart = (ctx, x, y, width, height) => {
+            ctx.beginPath();
+            const topCurveHeight = height * 0.3;
+            ctx.moveTo(x + width / 2, y + topCurveHeight);
+            ctx.bezierCurveTo(x + width / 2, y, x, y, x, y + topCurveHeight);
+            ctx.bezierCurveTo(x, y + (height + topCurveHeight) / 2, x + width / 2, y + height, x + width / 2, y + height);
+            ctx.bezierCurveTo(x + width / 2, y + height, x + width, y + (height + topCurveHeight) / 2, x + width, y + topCurveHeight);
+            ctx.bezierCurveTo(x + width, y, x + width / 2, y, x + width / 2, y + topCurveHeight);
+            ctx.closePath();
+        };
+
+        if (layout === 'strip-double') {
+            const stripWidth = imgW + padding * 2;
+            [0, 1].forEach(stripIdx => {
+                const offsetX = stripIdx * (stripWidth + margin);
+                loadedImgs.forEach((img, idx) => {
+                    const x = offsetX + padding;
+                    const y = padding + (idx * (imgH + margin));
+                    ctx.drawImage(img, x, y, imgW, imgH);
+                });
+            });
+        } else {
+            loadedImgs.forEach((img, idx) => {
+                let x, y;
+                if (layout === 'strip') {
+                    x = padding;
+                    y = padding + (idx * (imgH + margin));
+                } else {
+                    x = padding + ((idx % 2) * (imgW + margin));
+                    y = padding + (Math.floor(idx / 2) * (imgH + margin));
+                }
+
+                if (layout === 'heart-4') {
+                    ctx.save();
+                    drawHeart(ctx, x, y, imgW, imgH);
+                    ctx.clip();
+                    ctx.drawImage(img, x, y, imgW, imgH);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(img, x, y, imgW, imgH);
+                }
+            });
+        }
         
         const isDark = theme === '#0f172a' || theme === '#000000';
         ctx.fillStyle = isDark ? '#ffffff' : '#000000';
-        ctx.font = `bold ${layout === 'grid' ? 80 : 60}px Inter, sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('VIBE PHOTOBOOTH', canvas.width / 2, canvas.height - 50);
+
+        if (layout === 'strip-double') {
+             ctx.font = `bold 60px Inter, sans-serif`;
+             const stripWidth = imgW + padding * 2;
+             ctx.fillText('VIBE PHOTOBOOTH', stripWidth / 2, canvas.height - 50);
+             ctx.fillText('VIBE PHOTOBOOTH', stripWidth + margin + stripWidth / 2, canvas.height - 50);
+        } else {
+             ctx.font = `bold ${layout.includes('grid') || layout === 'heart-4' ? 80 : 60}px Inter, sans-serif`;
+             ctx.fillText('VIBE PHOTOBOOTH', canvas.width / 2, canvas.height - 50);
+        }
 
         setDraftCanvasData(canvas.toDataURL('image/jpeg', 0.9));
         setIsEditingStickers(true);
@@ -398,7 +444,10 @@ export default function Camera({ onCapture }) {
             <label>Form:</label>
             <select value={layout} onChange={(e) => setLayout(e.target.value)} disabled={isShooting}>
               <option value="strip">Dọc 1x4</option>
+              <option value="strip-double">Dọc 2 dải (In đôi)</option>
               <option value="grid">Vuông 2x2</option>
+              <option value="grid-6">Lưới 2x3 (6 ảnh)</option>
+              <option value="heart-4">Tim 2x2 (Đặc biệt)</option>
             </select>
           </div>
           <div className="setting-group">
@@ -435,7 +484,7 @@ export default function Camera({ onCapture }) {
         
         {burstCountdown !== null && (
           <div className="countdown-overlay">
-            <div className="shot-indicator">Tấm {currentShot}/4</div>
+            <div className="shot-indicator">Tấm {currentShot}/{layout === 'grid-6' ? 6 : 4}</div>
             <div className="countdown-number">{burstCountdown}</div>
           </div>
         )}
