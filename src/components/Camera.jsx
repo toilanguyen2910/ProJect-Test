@@ -1,7 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
 import './Camera.css';
 
-const STICKERS = ['✨', '🎀', '🧸', '🌸', '💋', '❤️', '🦋', '🐶', '🍒', '🎉', '🍀', '🌟'];
+const STICKERS = [
+  '✨', '🎀', '🧸', '🌸', '💋', '❤️', '🦋', '🐶', '🍒', '🎉', '🍀', '🌟', 
+  '🎂', '🎈', '🎁', '🥳', '🎊', '🍰', 
+  '🇻🇳', '🎇', '🎆', '🏮', '🏵️', '🥁', '👒', '☕'
+];
 
 export default function Camera({ onCapture }) {
   const videoRef = useRef(null);
@@ -293,8 +297,6 @@ export default function Camera({ onCapture }) {
               <option value="#ffffff">Trắng</option>
               <option value="#0f172a">Đen</option>
               <option value="#fdf2f8">Hồng</option>
-              <option value="#f5e6d3">Vintage Kem</option>
-              <option value="#e8d5b7">Nâu Nhạt</option>
               <option value="#c8956c">Cam Đất</option>
               <option value="#8b7355">Nâu Cổ Điển</option>
               <option value="#5d6e5d">Xanh Rêu</option>
