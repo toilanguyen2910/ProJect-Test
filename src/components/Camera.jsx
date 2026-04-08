@@ -28,12 +28,14 @@ export default function Camera({ onCapture }) {
   const [currentShot, setCurrentShot] = useState(0); 
   const [burstPhotos, setBurstPhotos] = useState([]);
 
-  // Sticker Editor state
-  const [isEditingStickers, setIsEditingStickers] = useState(false);
-  const [draftCanvasData, setDraftCanvasData] = useState(null);
-  const [currentSticker, setCurrentSticker] = useState('✨');
-  const [stickerScale, setStickerScale] = useState(1);
-  const [stickerRotation, setStickerRotation] = useState(0);
+  // Interactive Stickers state
+  const [placedStickers, setPlacedStickers] = useState([]);
+  const [activeStickerId, setActiveStickerId] = useState(null);
+
+  // Dragging state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ startX: 0, startY: 0, startStickerX: 0, startStickerY: 0 });
+  const workspaceRef = useRef(null);
 
   useEffect(() => {
     startCamera();
@@ -76,24 +78,12 @@ export default function Camera({ onCapture }) {
     return () => clearTimeout(timerId);
   }, [burstCountdown, isShooting]);
 
-  // Load draft image into editor canvas when editing starts
   useEffect(() => {
-    if (isEditingStickers && draftCanvasData && editorCanvasRef.current) {
-        resetEditorCanvas();
+    if (isEditingStickers && draftCanvasData) {
+        setPlacedStickers([]);
+        setActiveStickerId(null);
     }
   }, [isEditingStickers, draftCanvasData]);
-
-  const resetEditorCanvas = () => {
-      const canvas = editorCanvasRef.current;
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      img.src = draftCanvasData;
-      img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-      };
-  };
 
   const startCamera = async () => {
     try {
@@ -195,59 +185,169 @@ export default function Camera({ onCapture }) {
     setBurstCountdown(intervalSeconds);
   };
 
-  const handleCanvasClick = (e) => {
-    if (!editorCanvasRef.current || !currentSticker) return;
-    const canvas = editorCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate((stickerRotation * Math.PI) / 180);
-    const fontSize = Math.floor(120 * scaleX * stickerScale);
-    ctx.font = `${fontSize}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(currentSticker, 0, 0);
-    ctx.restore();
+  const handleAddSticker = (emoji) => {
+      const newSticker = {
+          id: Date.now(),
+          emoji,
+          x: 50,
+          y: 50,
+          scale: 1,
+          rotation: 0
+      };
+      setPlacedStickers(prev => [...prev, newSticker]);
+      setActiveStickerId(newSticker.id);
+  };
+
+  const handleStickerPointerDown = (e, id) => {
+      e.stopPropagation();
+      setActiveStickerId(id);
+      setIsDragging(true);
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const stickerToDrag = placedStickers.find(s => s.id === id);
+      if (!stickerToDrag) return;
+      setDragOffset({
+          startX: clientX,
+          startY: clientY,
+          startStickerX: stickerToDrag.x,
+          startStickerY: stickerToDrag.y
+      });
+  };
+
+  const handlePointerMove = (e) => {
+      if (!isDragging || !activeStickerId || !workspaceRef.current) return;
+      e.preventDefault(); 
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const rect = workspaceRef.current.getBoundingClientRect();
+      const dxPct = ((clientX - dragOffset.startX) / rect.width) * 100;
+      const dyPct = ((clientY - dragOffset.startY) / rect.height) * 100;
+
+      setPlacedStickers(prev => prev.map(s => 
+          s.id === activeStickerId 
+              ? { ...s, x: dragOffset.startStickerX + dxPct, y: dragOffset.startStickerY + dyPct }
+              : s
+      ));
+  };
+
+  const handlePointerUp = () => {
+      setIsDragging(false);
+  };
+
+  const removeActiveSticker = () => {
+      if (!activeStickerId) return;
+      setPlacedStickers(prev => prev.filter(s => s.id !== activeStickerId));
+      setActiveStickerId(null);
   };
 
   const handleSaveFinal = () => {
-      const finalData = editorCanvasRef.current.toDataURL('image/jpeg', 0.85);
-      onCapture(finalData);
-      setIsEditingStickers(false);
-      setDraftCanvasData(null);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.src = draftCanvasData;
+      img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          
+          if (workspaceRef.current) {
+              const rect = workspaceRef.current.getBoundingClientRect();
+              const scaleX = canvas.width / rect.width;
+              
+              placedStickers.forEach(sticker => {
+                  const pxX = (sticker.x / 100) * canvas.width;
+                  const pxY = (sticker.y / 100) * canvas.height;
+                  ctx.save();
+                  ctx.translate(pxX, pxY);
+                  ctx.rotate((sticker.rotation * Math.PI) / 180);
+                  const fontSize = Math.floor(80 * scaleX * sticker.scale);
+                  ctx.font = `${fontSize}px sans-serif`;
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(sticker.emoji, 0, 0);
+                  ctx.restore();
+              });
+          }
+
+          const finalData = canvas.toDataURL('image/jpeg', 0.85);
+          onCapture(finalData);
+          setIsEditingStickers(false);
+          setDraftCanvasData(null);
+          setPlacedStickers([]);
+          setActiveStickerId(null);
+      };
   };
 
   if (isEditingStickers) {
+      const activeSticker = placedStickers.find(s => s.id === activeStickerId);
+      const currentScale = activeSticker ? activeSticker.scale : 1;
+      const currentRotation = activeSticker ? activeSticker.rotation : 0;
+
       return (
           <div className="camera-container glass-panel sticker-editor-mode">
               <div className="camera-header">
                 <h2>✨ Sticker & Edit</h2>
               </div>
-              <div className="editor-workspace">
-                 <canvas 
-                    ref={editorCanvasRef} 
-                    className="editable-canvas"
-                    onClick={handleCanvasClick}
-                 />
+              <div className="editor-workspace-container">
+                  <div 
+                      className="editor-workspace"
+                      ref={workspaceRef}
+                      onPointerDown={(e) => {
+                         if(e.target === workspaceRef.current || e.target.classList.contains('draft-image')) {
+                             setActiveStickerId(null);
+                         }
+                      }}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerLeave={handlePointerUp}
+                      style={{ touchAction: 'none' }}
+                  >
+                     <img src={draftCanvasData} className="draft-image" draggable="false" alt="Draft" />
+                     {placedStickers.map(sticker => (
+                         <div
+                            key={sticker.id}
+                            className={`sticker-element ${activeStickerId === sticker.id ? 'active' : ''}`}
+                            onPointerDown={(e) => handleStickerPointerDown(e, sticker.id)}
+                            style={{
+                                left: `${sticker.x}%`,
+                                top: `${sticker.y}%`,
+                                transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg) scale(${sticker.scale})`,
+                            }}
+                         >
+                            {sticker.emoji}
+                         </div>
+                     ))}
+                  </div>
               </div>
               <div className="sticker-toolbar glass-panel">
-                  <p>Chọn nhãn dán, sau đó <b>chạm vào ảnh</b> để dán!</p>
+                  <p><b>Nhấp vào</b> nhãn dán ở dưới để thêm, sau đó <b>kéo trực tiếp trên ảnh để di chuyển.</b></p>
                   
-                  <div className="sticker-controls">
+                  <div className={`sticker-controls ${!activeStickerId ? 'disabled' : ''}`}>
                       <div className="sticker-control-group">
-                          <label>Kích cỡ: {stickerScale}x</label>
-                          <input type="range" min="0.5" max="3" step="0.1" value={stickerScale} onChange={(e) => setStickerScale(Number(e.target.value))} />
+                          <label>Kích cỡ: {currentScale}x</label>
+                          <input 
+                            type="range" min="0.5" max="3" step="0.1" 
+                            value={currentScale} 
+                            disabled={!activeStickerId}
+                            onChange={(e) => {
+                                if (activeStickerId) {
+                                    setPlacedStickers(prev => prev.map(s => s.id === activeStickerId ? { ...s, scale: Number(e.target.value) } : s));
+                                }
+                            }} 
+                          />
                       </div>
                       <div className="sticker-control-group">
-                          <label>Góc xoay: {stickerRotation}°</label>
-                          <input type="range" min="-180" max="180" step="5" value={stickerRotation} onChange={(e) => setStickerRotation(Number(e.target.value))} />
+                          <label>Góc xoay: {currentRotation}°</label>
+                          <input 
+                            type="range" min="-180" max="180" step="5" 
+                            value={currentRotation} 
+                            disabled={!activeStickerId}
+                            onChange={(e) => {
+                                if (activeStickerId) {
+                                    setPlacedStickers(prev => prev.map(s => s.id === activeStickerId ? { ...s, rotation: Number(e.target.value) } : s));
+                                }
+                            }} 
+                          />
                       </div>
                   </div>
 
@@ -255,15 +355,21 @@ export default function Camera({ onCapture }) {
                       {STICKERS.map(s => (
                           <button 
                             key={s} 
-                            className={`sticker-item ${currentSticker === s ? 'active' : ''}`}
-                            onClick={() => setCurrentSticker(s)}
+                            className="sticker-item"
+                            onClick={() => handleAddSticker(s)}
                           >
                               {s}
                           </button>
                       ))}
                   </div>
                   <div className="editor-actions">
-                      <button className="btn btn-secondary" onClick={resetEditorCanvas}>Làm lại (Kéo)</button>
+                      <button 
+                         className="btn btn-secondary" 
+                         disabled={!activeStickerId} 
+                         onClick={removeActiveSticker}
+                      >
+                         🗑️ Xoá hình đã chọn
+                      </button>
                       <button className="btn btn-primary" onClick={handleSaveFinal}>✅ HOÀN TẤT & LƯU</button>
                   </div>
               </div>
