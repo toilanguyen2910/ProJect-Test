@@ -318,3 +318,15 @@ button, a, select, input, .btn {
   50% { transform: translate(-50%, -50%) scale(1.5) rotate(45deg); opacity: 0.8; }
   100% { transform: translate(-50%, -50%) scale(2.5) rotate(90deg); opacity: 0; }
 }
+
+/* ===== Smooth Color Trail Canvas ===== */
+.trail-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 99998;
+}
+

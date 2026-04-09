@@ -28,6 +28,16 @@ export default function Camera({ onCapture }) {
   const [currentShot, setCurrentShot] = useState(0); 
   const [burstPhotos, setBurstPhotos] = useState([]);
 
+  // Refs to avoid stale closures in useEffect
+  const burstPhotosRef = useRef([]);
+  const intervalSecondsRef = useRef(intervalSeconds);
+  const layoutRef = useRef(layout);
+
+  // Keep refs in sync
+  useEffect(() => { burstPhotosRef.current = burstPhotos; }, [burstPhotos]);
+  useEffect(() => { intervalSecondsRef.current = intervalSeconds; }, [intervalSeconds]);
+  useEffect(() => { layoutRef.current = layout; }, [layout]);
+
   // Sticker Editor state
   const [isEditingStickers, setIsEditingStickers] = useState(false);
   const [draftCanvasData, setDraftCanvasData] = useState(null);
@@ -63,10 +73,12 @@ export default function Camera({ onCapture }) {
       const snap = takeSinglePhoto();
       if (!snap) return;
 
-      const newPhotos = [...burstPhotos, snap];
+      const currentBurstPhotos = burstPhotosRef.current;
+      const newPhotos = [...currentBurstPhotos, snap];
       setBurstPhotos(newPhotos);
-      
-      const targetCount = layout === 'grid-6' ? 6 : 4;
+
+      const currentLayout = layoutRef.current;
+      const targetCount = currentLayout === 'grid-6' ? 6 : 4;
 
       if (newPhotos.length === targetCount) {
         setIsShooting(false);
@@ -76,7 +88,7 @@ export default function Camera({ onCapture }) {
         createLayoutCanvas(newPhotos);
       } else {
         setCurrentShot(prev => prev + 1);
-        setBurstCountdown(intervalSeconds);
+        setBurstCountdown(intervalSecondsRef.current);
       }
       return;
     }
@@ -107,6 +119,65 @@ export default function Camera({ onCapture }) {
     if (stream) stream.getTracks().forEach(track => track.stop());
   };
 
+  // Manual pixel-based filter fallback for browsers without ctx.filter (Safari/iOS)
+  const applyManualFilter = (ctx, canvas, filterStr) => {
+    if (filterStr === 'none') return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    if (filterStr === 'grayscale(100%)') {
+      for (let i = 0; i < data.length; i += 4) {
+        const avg = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+        data[i] = data[i+1] = data[i+2] = avg;
+      }
+    } else if (filterStr === 'sepia(80%)') {
+      const amount = 0.8;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const tr = Math.min(255, (r * 0.393 + g * 0.769 + b * 0.189));
+        const tg = Math.min(255, (r * 0.349 + g * 0.686 + b * 0.168));
+        const tb = Math.min(255, (r * 0.272 + g * 0.534 + b * 0.131));
+        data[i]   = r + (tr - r) * amount;
+        data[i+1] = g + (tg - g) * amount;
+        data[i+2] = b + (tb - b) * amount;
+      }
+    } else if (filterStr === 'invert(100%)') {
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = 255 - data[i];
+        data[i+1] = 255 - data[i+1];
+        data[i+2] = 255 - data[i+2];
+      }
+    } else if (filterStr === 'contrast(120%) saturate(120%)') {
+      const contrast = 1.2, saturate = 1.2;
+      for (let i = 0; i < data.length; i += 4) {
+        // Contrast
+        data[i]   = Math.min(255, Math.max(0, (data[i]   - 128) * contrast + 128));
+        data[i+1] = Math.min(255, Math.max(0, (data[i+1] - 128) * contrast + 128));
+        data[i+2] = Math.min(255, Math.max(0, (data[i+2] - 128) * contrast + 128));
+        // Saturate
+        const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+        data[i]   = Math.min(255, Math.max(0, gray + (data[i]   - gray) * saturate));
+        data[i+1] = Math.min(255, Math.max(0, gray + (data[i+1] - gray) * saturate));
+        data[i+2] = Math.min(255, Math.max(0, gray + (data[i+2] - gray) * saturate));
+      }
+    }
+    // hue-rotate(90deg) is complex, skip manual fallback for it
+
+    ctx.putImageData(imageData, 0, 0);
+  };
+
+  // Check if browser supports ctx.filter
+  const supportsCtxFilter = (() => {
+    try {
+      const testCanvas = document.createElement('canvas');
+      const testCtx = testCanvas.getContext('2d');
+      testCtx.filter = 'grayscale(100%)';
+      return testCtx.filter === 'grayscale(100%)';
+    } catch (e) {
+      return false;
+    }
+  })();
+
   const takeSinglePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -114,13 +185,25 @@ export default function Camera({ onCapture }) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
-      
-      ctx.filter = filter;
+
+      if (supportsCtxFilter) {
+        ctx.filter = filter;
+      }
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      ctx.filter = 'none';
-      
+      if (supportsCtxFilter) {
+        ctx.filter = 'none';
+      }
+
+      // Reset transform before applying manual filter
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+      // Fallback: apply filter manually if browser doesn't support ctx.filter
+      if (!supportsCtxFilter && filter !== 'none') {
+        applyManualFilter(ctx, canvas, filter);
+      }
+
       const flash = document.createElement('div');
       flash.className = 'camera-flash';
       video.parentElement.appendChild(flash);
@@ -303,14 +386,16 @@ export default function Camera({ onCapture }) {
           if (workspaceRef.current) {
               const rect = workspaceRef.current.getBoundingClientRect();
               const scaleX = canvas.width / rect.width;
-              
+              const scaleY = canvas.height / rect.height;
+
               placedStickers.forEach(sticker => {
                   const pxX = (sticker.x / 100) * canvas.width;
                   const pxY = (sticker.y / 100) * canvas.height;
                   ctx.save();
                   ctx.translate(pxX, pxY);
                   ctx.rotate((sticker.rotation * Math.PI) / 180);
-                  const fontSize = Math.floor(80 * scaleX * sticker.scale);
+                  const avgScale = (scaleX + scaleY) / 2;
+                  const fontSize = Math.floor(80 * avgScale * sticker.scale);
                   ctx.font = `${fontSize}px sans-serif`;
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
