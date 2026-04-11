@@ -148,23 +148,51 @@ import React, { useRef, useState, useEffect } from 'react';
         img.src = photoSrc;
         img.onload = () => {
           let x, y, w, h;
+          // Tính toán để giữ nguyên tỉ lệ ảnh
+          const imgRatio = img.width / img.height;
+
           if (layout === 'strip') {
             w = canvasWidth - padding * 2;
             h = (canvasHeight - padding * 5) / 4;
-            x = padding;
+            // Giữ nguyên tỉ lệ ảnh
+            if (w / h > imgRatio) {
+              w = h * imgRatio;
+            } else {
+              h = w / imgRatio;
+            }
+            x = padding + (w - w) / 2 + (w - w) / 2; // Căn giữa theo chiều ngang
+            x = padding + (canvasWidth - padding * 2 - w) / 2;
             y = padding + h * index;
           } else if (layout === 'strip-double') {
             // Sửa logic vẽ ảnh cho strip-double để vừa khít
-            w = (canvasWidth - padding * 3) / 2;
-            h = (canvasHeight - padding * 3) / 2;
-            x = padding + (index % 2) * (w + padding);
-            y = padding + Math.floor(index / 2) * (h + padding);
+            const availableWidth = (canvasWidth - padding * 3) / 2;
+            const availableHeight = (canvasHeight - padding * 3) / 2;
+
+            if (availableWidth / availableHeight > imgRatio) {
+              w = availableHeight * imgRatio;
+              h = availableHeight;
+            } else {
+              w = availableWidth;
+              h = availableWidth / imgRatio;
+            }
+
+            x = padding + (index % 2) * (availableWidth * 2) + (availableWidth - w) / 2;
+            y = padding + Math.floor(index / 2) * (availableHeight * 2) + (availableHeight - h) / 2;
           } else {
-            // Grid and others...
-            w = (canvasWidth - padding * 3) / 2;
-            h = (canvasHeight - padding * 3) / 2;
-            x = padding + (index % 2) * (w + padding);
-            y = padding + Math.floor(index / 2) * (h + padding);
+            // Grid and others - giữ nguyên tỉ lệ
+            const availableWidth = (canvasWidth - padding * 3) / 2;
+            const availableHeight = (canvasHeight - padding * 3) / 2;
+
+            if (availableWidth / availableHeight > imgRatio) {
+              w = availableHeight * imgRatio;
+              h = availableHeight;
+            } else {
+              w = availableWidth;
+              h = availableWidth / imgRatio;
+            }
+
+            x = padding + (index % 2) * (availableWidth * 2) + (availableWidth - w) / 2;
+            y = padding + Math.floor(index / 2) * (availableHeight * 2) + (availableHeight - h) / 2;
           }
           ctx.drawImage(img, x, y, w, h);
         };
@@ -248,11 +276,11 @@ import React, { useRef, useState, useEffect } from 'react';
             />
           )}
           <canvas ref={canvasRef} style={{ display: 'none' }} />
-            <div className="countdown-overlay">
-              <div className="shot-indicator">Tấm {currentShot}/{layout === 'grid-6' ? 6 : 4}</div>
-              <div className="countdown-number">{burstCountdown}</div>
-            </div>
-          )}
+          <div className="countdown-overlay">
+            <div className="shot-indicator">Tấm {currentShot}/{layout === 'grid-6' ? 6 : 4}</div>
+            <div className="countdown-number">{burstCountdown}</div>
+          </div>
+        )}
 
           <div className="filter-bar">
               {['none', 'grayscale(100%)', 'sepia(80%)', 'hue-rotate(90deg)'].map(f => (
